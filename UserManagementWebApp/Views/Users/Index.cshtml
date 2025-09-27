@@ -1,0 +1,179 @@
+﻿@using UserManagementWebApp.Helpers
+@using Microsoft.AspNetCore.Html
+
+@model PaginatedList<UserManagementWebApp.Models.User>
+@{
+    ViewData["Title"] = "Users";
+    // для стрелочек ↑↓
+    string currentSort = ViewData["CurrentSort"] as string ?? "";
+    string nameSort = ViewData["NameSortParm"] as string ?? "";
+    string emailSort = ViewData["EmailSortParm"] as string ?? "";
+    string ageSort = ViewData["AgeSortParm"] as string ?? "";
+    string dateSort = ViewData["DateSortParm"] as string ?? "";
+    string currentFilter = ViewData["CurrentFilter"] as string ?? "";
+    int pageNumber = ViewData["PageNumber"] is int p ? p : 1;
+}
+
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="mb-0">Users</h2>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> Create New
+        </a>
+    </div>
+
+    <!-- Поиск -->
+    <form asp-action="Index" method="get" class="row g-2 mb-3">
+        <div class="col-md-6">
+            <input type="text"
+                   name="searchString"
+                   value="@currentFilter"
+                   class="form-control"
+                   placeholder="Search by name or email" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-outline-secondary">
+                <i class="bi bi-search"></i> Search
+            </button>
+        </div>
+        <div class="col-auto">
+            <a asp-action="Index" class="btn btn-outline-dark">
+                <i class="bi bi-x-circle"></i> Reset
+            </a>
+        </div>
+        <input type="hidden" name="sortOrder" value="@currentSort" />
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>
+                        <a asp-action="Index"
+                           asp-route-sortOrder="@nameSort"
+                           asp-route-currentFilter="@currentFilter"
+                           asp-route-pageNumber="@pageNumber"
+                           class="text-decoration-none">
+                            Name @SortIcon(currentSort, "Name", nameSort)
+                        </a>
+                    </th>
+                    <th style="width: 90px;">
+                        <a asp-action="Index"
+                           asp-route-sortOrder="@ageSort"
+                           asp-route-currentFilter="@currentFilter"
+                           asp-route-pageNumber="@pageNumber"
+                           class="text-decoration-none">
+                            Age @SortIcon(currentSort, "Age", ageSort)
+                        </a>
+                    </th>
+                    <th style="width: 100px;">
+                        <a asp-action="Index"
+                           asp-route-sortOrder="@dateSort"
+                           asp-route-currentFilter="@currentFilter"
+                           asp-route-pageNumber="@pageNumber"
+                           class="text-decoration-none">
+                            Grade @* сортировка по Grade не делаем, можно добавить при желании *@
+                        </a>
+                    </th>
+                    <th>
+                        <a asp-action="Index"
+                           asp-route-sortOrder="@emailSort"
+                           asp-route-currentFilter="@currentFilter"
+                           asp-route-pageNumber="@pageNumber"
+                           class="text-decoration-none">
+                            Email @SortIcon(currentSort, "Email", emailSort)
+                        </a>
+                    </th>
+                    <th style="width: 220px;">
+                        <a asp-action="Index"
+                           asp-route-sortOrder="@dateSort"
+                           asp-route-currentFilter="@currentFilter"
+                           asp-route-pageNumber="@pageNumber"
+                           class="text-decoration-none">
+                            Created At @SortIcon(currentSort, "Date", dateSort)
+                        </a>
+                    </th>
+                    <th style="width: 190px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model)
+                {
+                    <tr>
+                        <td>@u.Name</td>
+                        <td>@u.Age</td>
+                        <td>@u.Grade</td>
+                        <td>@u.Email</td>
+                        <td>@u.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a asp-action="Details" asp-route-id="@u.Id" class="btn btn-outline-secondary">
+                                    <i class="bi bi-eye"></i> Details
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@u.Id" class="btn btn-outline-primary">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@u.Id" class="btn btn-outline-danger">
+                                    <i class="bi bi-trash"></i> Delete
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Пагинация -->
+    <nav aria-label="page navigation">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                <a class="page-link"
+                   asp-action="Index"
+                   asp-route-pageNumber="@(Model.PageIndex - 1)"
+                   asp-route-sortOrder="@currentSort"
+                   asp-route-currentFilter="@currentFilter">
+                    « Prev
+                </a>
+            </li>
+
+            <li class="page-item disabled">
+                <span class="page-link">
+                    Page @Model.PageIndex of @Model.TotalPages
+                </span>
+            </li>
+
+            <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                <a class="page-link"
+                   asp-action="Index"
+                   asp-route-pageNumber="@(Model.PageIndex + 1)"
+                   asp-route-sortOrder="@currentSort"
+                   asp-route-currentFilter="@currentFilter">
+                    Next »
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+@functions {
+    // маленькая helper-функция для стрелочки сортировки
+    IHtmlContent SortIcon(string currentSort, string columnKey, string nextSort)
+    {
+        // convention: "Name" / "name_desc" и т.п.
+        var isAsc = nextSort.Equals(columnKey, StringComparison.OrdinalIgnoreCase);
+        var isDesc = nextSort.Equals(columnKey.ToLower() + "_desc", StringComparison.OrdinalIgnoreCase);
+
+        if (currentSort.StartsWith(columnKey, StringComparison.OrdinalIgnoreCase) && currentSort.EndsWith("_desc", StringComparison.OrdinalIgnoreCase))
+        {
+            return new HtmlString(@"<i class=""bi bi-arrow-down-short""></i>");
+        }
+        if (currentSort.StartsWith(columnKey, StringComparison.OrdinalIgnoreCase))
+        {
+            return new HtmlString(@"<i class=""bi bi-arrow-up-short""></i>");
+        }
+
+        // колонка неактивна
+        return HtmlString.Empty;
+    }
+}
